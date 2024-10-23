@@ -1,0 +1,4 @@
+scipy
+PILLOW
+tensorflow
+numpy
