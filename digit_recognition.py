@@ -3,18 +3,14 @@ from PIL import Image, ImageDraw, ImageOps
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models, preprocessing
 import numpy as np
-import tkinter as tk
-from tkinter import *
-from tkinter import ttk
 import threading
-
+import customtkinter as ctk  # CustomTkinter importieren
 
 def load_data():
     (train_images, train_labels), (test_images, test_labels) = datasets.mnist.load_data()
     train_images = train_images.reshape((60000, 28, 28, 1)) / 255.0
     test_images = test_images.reshape((10000, 28, 28, 1)) / 255.0
     return (train_images, train_labels), (test_images, test_labels)
-
 
 def create_model(learning_rate):
     model = models.Sequential([
@@ -41,7 +37,6 @@ def create_model(learning_rate):
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
     return model
-
 
 def train_and_save_model():
     (train_images, train_labels), (test_images, test_labels) = load_data()
@@ -109,30 +104,54 @@ def predict_digit(img):
     return np.argmax(result), max(result)
 
 
-class App(tk.Tk):
+class App(ctk.CTk):  # Verwende CTk für den Hauptanwendungsrahmen
     def __init__(self):
-        tk.Tk.__init__(self)
-        self.x = self.y = 0
-        self.title("Handwritten Digit Recognition")
+        super().__init__(screenName='Digit Recognition')
+
+        # Vollbildmodus aktivieren
+        self.is_fullscreen = True  # Standardmäßig auf Vollbild setzen
+        self.attributes('-fullscreen', self.is_fullscreen)
+        self.bind("<Escape>", self.toggle_fullscreen)
+
+        self.title("Digit Recognition")
         self.configure(bg="#f0f0f0")
 
-        self.canvas = tk.Canvas(self, width=400, height=400, bg="white", cursor="cross")
-        self.label = tk.Label(self, text="Draw a digit", font=("Helvetica", 24), bg="#f0f0f0")
-        self.classify_btn = tk.Button(self, text="Classify", command=self.classify_handwriting,
-                                      font=("Helvetica", 16), bg="#4CAF50", fg="white")
-        self.button_clear = tk.Button(self, text="Clear", command=self.clear_all,
-                                      font=("Helvetica", 16), bg="#f44336", fg="white")
+        # Hauptframe erstellen
+        self.main_frame = ctk.CTkFrame(self, bg_color="#f0f0f0")
+        self.main_frame.pack(expand=True, fill=ctk.BOTH)
 
+        # Canvas erstellen
+        self.canvas = ctk.CTkCanvas(self.main_frame, width=400, height=400, bg="white", cursor="cross")
+        self.canvas.place(relx=0.5, rely=0.5, anchor=ctk.CENTER)  # Canvas zentrieren
 
-        self.canvas.grid(row=0, column=0, pady=10, padx=10, rowspan=2, sticky=W)
-        self.label.grid(row=0, column=1, pady=10, padx=10)
-        self.classify_btn.grid(row=1, column=1, pady=10, padx=10)
-        self.button_clear.grid(row=2, column=0, pady=10)
-
-        self.canvas.bind("<B1-Motion>", self.paint)
-
+        # Bild für die Zeichnung vorbereiten
         self.image1 = PIL.Image.new(mode="RGB", size=(400, 400), color=(255, 255, 255))
         self.draw = ImageDraw.Draw(self.image1)
+
+        self.control_frame = ctk.CTkFrame(self.main_frame, bg_color="#f0f0f0", corner_radius=0, width=350, height=350)  # Größe des Frames erhöht
+        self.control_frame.place(relx=0.75, rely=0.5, anchor=ctk.CENTER)  # Control Frame auf der rechten Seite zentrieren
+
+        self.label = ctk.CTkLabel(self.control_frame, text="Draw a digit", font=("Helvetica", 24), bg_color="#f0f0f0", width=200, corner_radius=50)
+        self.label.pack(pady=10, padx=20)
+
+        self.classify_btn = ctk.CTkButton(self.control_frame, text="Classify", command=self.classify_handwriting,
+                                           font=("Helvetica", 18), fg_color="#4CAF50", text_color="white")
+        self.classify_btn.pack(pady=10, padx=20)  # Abstand zu den Rändern
+
+        self.button_clear = ctk.CTkButton(self.control_frame, text="Clear", command=self.clear_all,
+                                           font=("Helvetica", 18), fg_color="#f44336", text_color="white")
+        self.button_clear.pack(pady=10, padx=20)  # Abstand zu den Rändern
+
+        self.button_fullscreen = ctk.CTkButton(self.control_frame, text="Toggle Fullscreen", command=self.toggle_fullscreen,
+                                                font=("Helvetica", 18), fg_color="#89CFF0", text_color="white")
+        self.button_fullscreen.pack(pady=10, padx=20)  # Abstand zu den Rändern
+
+        # Canvas Bindings
+        self.canvas.bind("<B1-Motion>", self.paint)
+
+    def toggle_fullscreen(self, event=None):
+        self.is_fullscreen = not self.is_fullscreen
+        self.attributes('-fullscreen', self.is_fullscreen)
 
     def clear_all(self):
         self.canvas.delete("all")
@@ -147,16 +166,13 @@ class App(tk.Tk):
         self.draw.ellipse([self.x - r, self.y - r, self.x + r, self.y + r], fill='black')
 
     def classify_handwriting(self):
-        # Disable classify button and start progress bar
-        self.classify_btn.config(state="disabled")
-
-        # Run classification in a separate thread to avoid freezing
+        self.classify_btn.configure(state=ctk.DISABLED)  # Verwende state=ctk.DISABLED
         threading.Thread(target=self.run_classification).start()
 
     def run_classification(self):
         digit, acc = predict_digit(self.image1)
         self.label.configure(text=f'Digit: {digit}, Acc: {int(acc * 100)}%')
-        self.classify_btn.config(state="normal")
+        self.classify_btn.configure(state=ctk.NORMAL)  # Reaktiviere den Button
 
 
 if __name__ == '__main__':
@@ -169,4 +185,4 @@ if __name__ == '__main__':
         model = tf.keras.models.load_model('digit_recognition_model.h5')
 
     app = App()
-    mainloop()
+    app.mainloop()

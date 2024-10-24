@@ -2,3 +2,4 @@ scipy
 PILLOW
 tensorflow
 numpy
+customtkinker
