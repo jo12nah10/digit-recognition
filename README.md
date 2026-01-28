@@ -30,5 +30,7 @@ On startup, the application automatically loads a saved model or trains a new on
    ```bash
    pip install tensorflow pillow customtkinter
    
+2. Run the application   
+   ```bash
    python main.py
 
